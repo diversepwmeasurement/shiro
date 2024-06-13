@@ -1,79 +1,39 @@
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
-#
-#       http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
-
-name: Scorecards supply-chain security
-on:
-  # Only the default branch is supported.
-  branch_protection_rule:
-  schedule:
-    - cron: '43 19 * * 1'
-  push:
-    branches: [ "main" ]
-
-# Declare default permissions as read only.
-permissions: read-all
-
 jobs:
   analysis:
     name: Scorecards analysis
-    runs-on: ubuntu-latest
     permissions:
-      # Needed to upload the results to code-scanning dashboard.
-      security-events: write
-      # Used to receive a badge.
-      id-token: write
-      # Needs for private repositories.
-      contents: read
       actions: read
-    
+      contents: read
+      id-token: write
+      security-events: write
+    runs-on: self-hosted
     steps:
-      - name: "Checkout code"
-        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # tag=v3.0.0
-        with:
-          persist-credentials: false
-
-      - name: "Run analysis"
-        uses: ossf/scorecard-action@dc50aa9510b46c811795eb24b2f1ba02a914e534 #tag=2.3.3
-        with:
-          results_file: results.sarif
-          results_format: sarif
-          # (Optional) Read-only PAT token. Uncomment the `repo_token` line below if:
-          # - you want to enable the Branch-Protection check on a *public* repository, or
-          # - you are installing Scorecards on a *private* repository
-          # To create the PAT, follow the steps in https://github.com/ossf/scorecard-action#authentication-with-pat.
-          # repo_token: ${{ secrets.SCORECARD_READ_TOKEN }}
-
-          # Publish the results for public repositories to enable scorecard badges. For more details, see
-          # https://github.com/ossf/scorecard-action#publishing-results. 
-          # For private repositories, `publish_results` will automatically be set to `false`, regardless 
-          # of the value entered here.
-          publish_results: true
-
-      # Upload the results as artifacts (optional). Commenting out will disable uploads of run results in SARIF
-      # format to the repository Actions tab.
-      - name: "Upload artifact"
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # tag=v4.3.3
-        with:
-          name: SARIF file
-          path: results.sarif
-          retention-days: 5
-      
-      # Upload the results to GitHub's code scanning dashboard.
-      - name: "Upload to code-scanning"
-        uses: github/codeql-action/upload-sarif@530d4feaa9c62aaab2d250371e2061eb7a172363 #tag=v2
-        with:
-          sarif_file: results.sarif
+    - continue-on-error: true
+      name: Checkout code
+      uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29
+      with:
+        persist-credentials: false
+    - continue-on-error: true
+      name: Run analysis
+      uses: ossf/scorecard-action@dc50aa9510b46c811795eb24b2f1ba02a914e534
+      with:
+        publish_results: true
+        results_file: results.sarif
+        results_format: sarif
+    - continue-on-error: true
+      name: Upload artifact
+      uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+      with:
+        name: SARIF file
+        path: results.sarif
+        retention-days: 5
+    - continue-on-error: true
+      name: Upload to code-scanning
+      uses: github/codeql-action/upload-sarif@530d4feaa9c62aaab2d250371e2061eb7a172363
+      with:
+        sarif_file: results.sarif
+name: Scorecards supply-chain security
+on:
+  repository_dispatch:
+    types: trigger-ga___scorecards.yml
+permissions: read-all
